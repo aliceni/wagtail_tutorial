@@ -4,11 +4,17 @@ from datetime import date
 from django import forms
 from django.db import models
 from django.http import Http404
+from django.shortcuts import render
 
-from wagtail.admin.edit_handlers import FieldPanel
+from wagtail.admin.edit_handlers import FieldPanel, StreamFieldPanel
 from wagtail.contrib.routable_page.models import RoutablePageMixin, route
-from wagtail.core.fields import RichTextField
+from wagtail.core import blocks
+from wagtail.core.fields import RichTextField, StreamField
 from wagtail.core.models import Page
+from wagtail.embeds.blocks import EmbedBlock
+from wagtail.images.blocks import ImageChooserBlock
+from wagtail.images.edit_handlers import ImageChooserPanel
+from wagtail.search import index
 from wagtail.snippets.models import register_snippet
 
 from dateformat import DateFormat
@@ -16,6 +22,8 @@ from modelcluster.fields import ParentalKey, ParentalManyToManyField
 from modelcluster.tags import ClusterTaggableManager
 from taggit.models import Tag as TaggitTag
 from taggit.models import TaggedItemBase
+
+from .blocks import TwoColumnBlock
 
 
 class BlogPage(RoutablePageMixin, Page):
@@ -30,10 +38,22 @@ class BlogPage(RoutablePageMixin, Page):
         context = super().get_context(request, *args, **kwargs)
         context["posts"] = self.posts
         context["blog_page"] = self
+        context["search_type"] = getattr(self, "search_type", None)
+        context["search_term"] = getattr(self, "search_term", None)
         return context
 
     def get_posts(self):
         return PostPage.objects.descendant_of(self).live().order_by('-date')
+
+    @route(r'^search/$')
+    def post_search(self, request, *args, **kwargs):
+        search_query = request.GET.get('q', None)
+        self.posts = self.get_posts()
+        if search_query:
+            self.posts = self.posts.search(search_query)
+            self.search_term = search_query
+            self.search_type = 'search'
+        return Page.serve(self, request, *args, **kwargs)
 
     @route(r'^(\d{4})/$')
     @route(r'^(\d{4})/(\d{2})/$')
@@ -84,17 +104,32 @@ class PostPage(Page):
 
     body = RichTextField(blank=True)
     date = models.DateTimeField(verbose_name="Post date", default=datetime.datetime.today)
+    excerpt = RichTextField(verbose_name='excerpt', blank=True)
+    header_image = models.ForeignKey(
+        'wagtailimages.Image',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='+',
+    )
     categories = ParentalManyToManyField("blog.BlogCategory", blank=True)
     tags = ClusterTaggableManager(through='blog.BlogPageTag', blank=True)
 
     content_panels = Page.content_panels + [
         FieldPanel("body", classname="full"),
+        FieldPanel("excerpt", classname="full"),
+        ImageChooserPanel("header_image"),
         FieldPanel("categories", widget=forms.CheckboxSelectMultiple),
         FieldPanel("tags"),
     ]
 
     settings_panels = Page.settings_panels + [
         FieldPanel("date"),
+    ]
+
+    search_fields = Page.search_fields + [
+        index.SearchField('title'),
+        index.SearchField('body'),
+        index.SearchField('excerpt'),
     ]
 
     @property
@@ -137,3 +172,27 @@ class Tag(TaggitTag):
 
     class Meta:
         proxy = True
+
+
+class LandingPage(Page):
+
+    body = StreamField([
+        ("heading", blocks.CharBlock(classname="full title")),
+        ("paragraph", blocks.RichTextBlock()),
+        ("image", ImageChooserBlock(icon="image")),
+        ("two_colums", TwoColumnBlock()),
+        ("embedded_video", EmbedBlock(icon="media")),
+    ], blank=True, null=True)
+
+    content_panels = Page.content_panels + [
+        StreamFieldPanel("body"),
+    ]
+
+    @property
+    def blog_page(self):
+        return self.get_parent().specific
+
+    def get_context(self, request, *args, **kwargs):
+        context = super().get_context(request, *args, **kwargs)
+        context["blog_page"] = self.blog_page
+        return context

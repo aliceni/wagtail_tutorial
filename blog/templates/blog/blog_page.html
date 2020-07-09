@@ -1,15 +1,14 @@
 {% extends "base.html" %}
 {% load static wagtailcore_tags wagtailimages_tags blog_tags el_pagination_tags %}
 
-{% block extra_css %}
-    <link href="{% static 'blog/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-    <link href="{% static 'blog/css/blog-home.css' %}" rel="stylesheet">
-{% endblock %}
-
 {% block content %}
-    <h1>{{ blog_page.title }}</h1>
-
-    <div class="intro">{{ blog_page.description }}</div>
+    {% if self.search_term %}
+        <header class="page-header">
+            <h1 class="page-title">
+                Search Results for <span>{{ self.search_type }}: {{ self.search_term }}</span>
+            </h1>
+        </header>
+    {% endif %}
 
     {% paginate 2 posts %}
     {% for post in posts %}
@@ -17,7 +16,7 @@
             {% if post.header_image %}
                 {% image post.header_image original as header_image %}
                 <a href="{% post_date_url post blog_page %}">
-                    <img src="{{ header_image }}" class="card-img-top">
+                    <img src="{{ header_image.url }}" class="card-img-top">
                 </a>
             {% endif %}
 
@@ -41,8 +40,3 @@
         {% show_pages %}
     </ul>
 {% endblock  %}
-
-{% block extra_js %}
-    <script src={% static "blog/vendor/jquery/jquery.min.js" %}></script>
-    <script src={% static "blog/vendor/bootstrap/js/bootstrap.bundle.min.js" %}></script>
-{% endblock %}

@@ -1,4 +1,4 @@
-{% load static wagtailuserbar %}
+{% load static wagtailuserbar menu_tags %}
 
 <!DOCTYPE html>
 <html class="no-js" lang="en">
@@ -22,19 +22,41 @@
 
         {% block extra_css %}
             {# Override this in templates to add extra stylesheets #}
+            <link href="{% static 'blog/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+            <link href="{% static 'blog/css/blog-home.css' %}" rel="stylesheet">
         {% endblock %}
     </head>
 
     <body class="{% block body_class %}{% endblock %}">
         {% wagtailuserbar %}
 
-        {% block content %}{% endblock %}
+        <div class="container">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light" role="navigations">
+                <a class="navbar-brand" href="#">Navbar</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                {% main_menu %}
+                <form class="form-inline">
+                    <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+                    <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+                </form>
+            </nav>
+            <div class="row">
+                <div class="col-md-8">
+                    {% block content %}{% endblock %}
+                </div>
+                {% include "blog/components/sidebar.html" %}
+            </div>
+        </div>
 
         {# Global javascript #}
         <script type="text/javascript" src="{% static 'js/wagtail_tuto.js' %}"></script>
 
         {% block extra_js %}
             {# Override this in templates to add extra javascript #}
+            <script src={% static "blog/vendor/jquery/jquery.min.js" %}></script>
+            <script src={% static "blog/vendor/bootstrap/js/bootstrap.bundle.min.js" %}></script>
         {% endblock %}
     </body>
 </html>
