@@ -1,11 +1,48 @@
-{% load wagtailcore_tags %}
+{% extends "base.html" %}
+{% load static wagtailcore_tags wagtailimages_tags blog_tags el_pagination_tags %}
+
+{% block extra_css %}
+    <link href="{% static 'blog/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'blog/css/blog-home.css' %}" rel="stylesheet">
+{% endblock %}
 
 {% block content %}
     <h1>{{ blog_page.title }}</h1>
 
     <div class="intro">{{ blog_page.description }}</div>
 
+    {% paginate 2 posts %}
     {% for post in posts %}
-        <h2><a href="{% pageurl post %}">{{ post.title }}</a></h2>
+        <div class="card mb-4">
+            {% if post.header_image %}
+                {% image post.header_image original as header_image %}
+                <a href="{% post_date_url post blog_page %}">
+                    <img src="{{ header_image }}" class="card-img-top">
+                </a>
+            {% endif %}
+
+            <div class="card-body">
+                <h2 class="card-title">
+                    <a href="{% post_date_url post blog_page %}">{{ post.title }}</a>
+                </h2>
+                <p class="card-text">
+                    {% if post.excerpt %}
+                        {{ post.excerpt|richtext }}
+                    {% else %}
+                        {{ post.body|richtext|truncatewords_html:70 }}
+                    {% endif %}
+                </p>
+                <a href="{% post_date_url post blog_page %}" class="btn btn-primary">Read More &rarr;</a>
+            </div>
+        </div>
     {% endfor %}
+    <!-- Pagination -->
+    <ul class="pagination justify-content-center mb-4">
+        {% show_pages %}
+    </ul>
 {% endblock  %}
+
+{% block extra_js %}
+    <script src={% static "blog/vendor/jquery/jquery.min.js" %}></script>
+    <script src={% static "blog/vendor/bootstrap/js/bootstrap.bundle.min.js" %}></script>
+{% endblock %}

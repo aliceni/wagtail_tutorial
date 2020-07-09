@@ -1,7 +1,9 @@
 import datetime
+from datetime import date
 
 from django import forms
 from django.db import models
+from django.http import Http404
 
 from wagtail.admin.edit_handlers import FieldPanel
 from wagtail.contrib.routable_page.models import RoutablePageMixin, route
@@ -9,7 +11,7 @@ from wagtail.core.fields import RichTextField
 from wagtail.core.models import Page
 from wagtail.snippets.models import register_snippet
 
-from django_extensions.db.fields import AutoSlugField
+from dateformat import DateFormat
 from modelcluster.fields import ParentalKey, ParentalManyToManyField
 from modelcluster.tags import ClusterTaggableManager
 from taggit.models import Tag as TaggitTag
@@ -31,7 +33,32 @@ class BlogPage(RoutablePageMixin, Page):
         return context
 
     def get_posts(self):
-        return PostPage.objects.descendant_of(self).live()
+        return PostPage.objects.descendant_of(self).live().order_by('-date')
+
+    @route(r'^(\d{4})/$')
+    @route(r'^(\d{4})/(\d{2})/$')
+    @route(r'^(\d{4})/(\d{2})/(\d{2})/$')
+    def post_by_date(self, request, year, month=None, day=None, *args, **kwargs):
+        self.posts = self.get_posts().filter(date__year=year)
+
+        if month:
+            self.posts = self.posts.filter(date__month=month)
+            self.search_term = DateFormat("YYYY-MM-DD").format(date(int(year), int(month), 1))
+
+        if day:
+            self.posts = self.posts.filter(date__day=day)
+            self.search_term = DateFormat("YYYY-MM-DD").format(date(int(year), int(month), int(day)))
+
+        return Page.serve(self, request, *args, **kwargs)
+
+    @route(r'^(\d{4})/(\d{2})/(\d{2})/(.+)/$')
+    def post_by_date_slug(self, request, year, month, day, slug, *args, **kwargs):
+        post_page = self.get_posts().filter(date__year=year, date__month=month, date__day=day, slug=slug).first()
+
+        if not post_page:
+            raise Http404
+
+        return Page.serve(post_page, request, *args, **kwargs)
 
     @route(r'^tag/(?P<tag>[-\w]+)/$')
     def post_by_tag(self, request, tag, *args, **kwargs):
@@ -85,7 +112,7 @@ class PostPage(Page):
 class BlogCategory(models.Model):
 
     name = models.CharField(max_length=255)
-    slug = AutoSlugField(populate_from="name", editable=True, unique=True)
+    slug = models.SlugField(unique=True, max_length=80)
 
     panels = [
         FieldPanel("name"),
