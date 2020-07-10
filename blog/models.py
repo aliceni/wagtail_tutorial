@@ -194,5 +194,5 @@ class LandingPage(Page):
 
     def get_context(self, request, *args, **kwargs):
         context = super().get_context(request, *args, **kwargs)
-        context["blog_page"] = self.blog_page
+        context["blog_page"] = BlogPage.objects.first()
         return context
