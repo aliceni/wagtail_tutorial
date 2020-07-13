@@ -40,4 +40,37 @@
     <ul class="pagination justify-content-center mb-4">
         {% show_pages %}
     </ul>
+
+    {% comment %} <div class="row">
+        {% for post in posts %}
+            <div class="col-sm-3">
+                <div class="card mb-4">
+                    {% if post.header_image %}
+                        {% image post.header_image original as header_image %}
+                        <a href="{% post_date_url post blog_page %}">
+                            <img src="{{ header_image.url }}" class="card-img-top">
+                        </a>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <h2 class="card-title">
+                            <a href="{% post_date_url post blog_page %}">{{ post.title }}</a>
+                        </h2>
+                        <p class="card-text">
+                            {% if post.excerpt %}
+                                {{ post.excerpt|richtext }}
+                            {% else %}
+                                {{ post.body|richtext|truncatewords_html:70 }}
+                            {% endif %}
+                        </p>
+                        <a href="{% post_date_url post blog_page %}" class="btn btn-primary">Read More &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        {% if forloop.counter|divisibleby:"3" %}
+        </div>
+        <div class="row">
+        {% endif %}
+        {% endfor %}
+    </div> {% endcomment %}
 {% endblock  %}
