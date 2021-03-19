@@ -9,7 +9,7 @@ chardet==3.0.4
 dateformat==0.9.7
 decorator==4.4.2
 distlib==0.3.1
-Django==3.0.8
+Django==3.1.6
 django-cogwheels==0.3
 django-el-pagination==3.3.0
 django-extensions==3.0.2
